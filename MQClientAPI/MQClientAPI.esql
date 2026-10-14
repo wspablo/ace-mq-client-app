@@ -1,0 +1,144 @@
+/*******************************************************************************
+* Project: MQClientAPI
+*
+* Description: ESQL modules for the MQ Client REST API.
+*              putMessage  - prepares a message for MQ Output (POST /messages)
+*              getMessage  - builds JSON response from retrieved MQ message (GET /messages)
+*
+* Ver   Author    Date        Description
+* ===   ======    ====        ===========
+* 1     demo      2025        Initial
+********************************************************************************/
+
+-- No BROKER SCHEMA: ESQL file is at project root level
+
+/*******************************************************************************
+* Node: PrepareMsg
+* Module Name: putMessage_PrepareMsg
+*
+* Description: Copies the inbound BLOB body (the plain-text POST body) as the
+*              MQ message payload.  Clears HTTP input headers so the MQ Output
+*              node only sees the message data.
+********************************************************************************/
+CREATE COMPUTE MODULE putMessage_PrepareMsg
+    CREATE FUNCTION Main() RETURNS BOOLEAN
+    BEGIN
+        -- Carry the raw BLOB body forward as the MQ message body
+        SET OutputRoot.BLOB.BLOB = InputRoot.BLOB.BLOB;
+        RETURN TRUE;
+    END;
+
+    CREATE PROCEDURE CopyMessageHeaders() BEGIN
+        DECLARE I INTEGER 1;
+        DECLARE J INTEGER;
+        SET J = CARDINALITY(InputRoot.*[]);
+        WHILE I < J DO
+            SET OutputRoot.*[I] = InputRoot.*[I];
+            SET I = I + 1;
+        END WHILE;
+    END;
+
+    CREATE PROCEDURE CopyEntireMessage() BEGIN
+        SET OutputRoot = InputRoot;
+    END;
+END MODULE;
+
+/*******************************************************************************
+* Node: BuildResponse (putMessage)
+* Module Name: putMessage_BuildResponse
+*
+* Description: Builds a JSON 200 response after the MQ Output node has
+*              successfully put the message onto the queue.
+********************************************************************************/
+CREATE COMPUTE MODULE putMessage_BuildResponse
+    CREATE FUNCTION Main() RETURNS BOOLEAN
+    BEGIN
+        CREATE NEXTSIBLING OF OutputRoot.Properties DOMAIN 'HTTPResponseHeader';
+        SET OutputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Line" = 'HTTP/1.1 200 OK';
+        SET OutputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code" = 200;
+        SET OutputRoot.JSON.Data.status = 'Message put successfully';
+        RETURN TRUE;
+    END;
+
+    CREATE PROCEDURE CopyMessageHeaders() BEGIN
+        DECLARE I INTEGER 1;
+        DECLARE J INTEGER;
+        SET J = CARDINALITY(InputRoot.*[]);
+        WHILE I < J DO
+            SET OutputRoot.*[I] = InputRoot.*[I];
+            SET I = I + 1;
+        END WHILE;
+    END;
+
+    CREATE PROCEDURE CopyEntireMessage() BEGIN
+        SET OutputRoot = InputRoot;
+    END;
+END MODULE;
+
+/*******************************************************************************
+* Node: BuildResponse (getMessage)
+* Module Name: getMessage_BuildResponse
+*
+* Description: Builds a JSON 200 response containing the text message retrieved
+*              from the MQ queue.  The MQ Get node returns the payload as BLOB.
+********************************************************************************/
+CREATE COMPUTE MODULE getMessage_BuildResponse
+    CREATE FUNCTION Main() RETURNS BOOLEAN
+    BEGIN
+        DECLARE msgText CHARACTER;
+
+        -- Convert BLOB payload to character string (UTF-8)
+        SET msgText = CAST(InputRoot.BLOB.BLOB AS CHARACTER CCSID 1208);
+
+        CREATE NEXTSIBLING OF OutputRoot.Properties DOMAIN 'HTTPResponseHeader';
+        SET OutputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Line" = 'HTTP/1.1 200 OK';
+        SET OutputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code" = 200;
+        SET OutputRoot.JSON.Data.message = COALESCE(msgText, '');
+        RETURN TRUE;
+    END;
+
+    CREATE PROCEDURE CopyMessageHeaders() BEGIN
+        DECLARE I INTEGER 1;
+        DECLARE J INTEGER;
+        SET J = CARDINALITY(InputRoot.*[]);
+        WHILE I < J DO
+            SET OutputRoot.*[I] = InputRoot.*[I];
+            SET I = I + 1;
+        END WHILE;
+    END;
+
+    CREATE PROCEDURE CopyEntireMessage() BEGIN
+        SET OutputRoot = InputRoot;
+    END;
+END MODULE;
+
+/*******************************************************************************
+* Node: BuildEmptyResponse (getMessage)
+* Module Name: getMessage_BuildEmptyResponse
+*
+* Description: Builds an HTTP 204 No Content response when the MQ queue is empty
+*              (MQ Get noMatch terminal).
+********************************************************************************/
+CREATE COMPUTE MODULE getMessage_BuildEmptyResponse
+    CREATE FUNCTION Main() RETURNS BOOLEAN
+    BEGIN
+        CREATE NEXTSIBLING OF OutputRoot.Properties DOMAIN 'HTTPResponseHeader';
+        SET OutputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Line" = 'HTTP/1.1 204 No Content';
+        SET OutputRoot.HTTPResponseHeader."X-Original-HTTP-Status-Code" = 204;
+        RETURN TRUE;
+    END;
+
+    CREATE PROCEDURE CopyMessageHeaders() BEGIN
+        DECLARE I INTEGER 1;
+        DECLARE J INTEGER;
+        SET J = CARDINALITY(InputRoot.*[]);
+        WHILE I < J DO
+            SET OutputRoot.*[I] = InputRoot.*[I];
+            SET I = I + 1;
+        END WHILE;
+    END;
+
+    CREATE PROCEDURE CopyEntireMessage() BEGIN
+        SET OutputRoot = InputRoot;
+    END;
+END MODULE;

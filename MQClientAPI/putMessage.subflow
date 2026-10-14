@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage xmi:version="2.0"
+    xmlns:xmi="http://www.omg.org/XMI"
+    xmlns:ComIbmCompute.msgnode="ComIbmCompute.msgnode"
+    xmlns:ComIbmMQOutput.msgnode="ComIbmMQOutput.msgnode"
+    xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore"
+    xmlns:eflow="http://www.ibm.com/wbi/2005/eflow"
+    xmlns:utility="http://www.ibm.com/wbi/2005/eflow_utility"
+    nsURI="putMessage.subflow"
+    nsPrefix="putMessage.subflow">
+  <eClassifiers xmi:type="eflow:FCMComposite" name="FCMComposite_1" nodeLayoutStyle="RECTANGLE">
+    <eSuperTypes href="http://www.ibm.com/wbi/2005/eflow#//FCMBlock"/>
+    <translation xmi:type="utility:TranslatableString" key="putMessage" bundleName="putMessage" pluginId="MQClientAPI"/>
+    <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/MQClientAPI/icons/full/obj16/putMessage.gif"/>
+    <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/MQClientAPI/icons/full/obj30/putMessage.gif"/>
+    <composition>
+      <!-- Subflow entry point -->
+      <nodes xmi:type="eflow:FCMSource" xmi:id="InTerminal.Input_1" location="25,25">
+        <translation xmi:type="utility:TranslatableString" key="Input" bundleName="putMessage" pluginId="MQClientAPI"/>
+      </nodes>
+      <!-- Prepare the MQ message: copy BLOB body, clear HTTP headers -->
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="200,25"
+             computeExpression="esql://routine/#putMessage_PrepareMsg.Main"
+             computeMode="destinationAndMessage">
+        <translation xmi:type="utility:ConstantString" string="PrepareMsg"/>
+      </nodes>
+      <!-- MQ Output: puts message onto DEV.QUEUE.1 using the MQEndpoint policy -->
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="390,25"
+             queueName="DEV.QUEUE.1"
+             mqmdMessageType="8"
+             transactionMode="automatic"
+             policyUrl="{MQClientPolicy}:MQEndpoint"
+             policyProjectName="MQClientPolicy"
+             policyName="{MQClientPolicy}:MQEndpoint">
+        <translation xmi:type="utility:ConstantString" string="MQ Put"/>
+      </nodes>
+      <!-- Build the JSON success response -->
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="570,25"
+             computeExpression="esql://routine/#putMessage_BuildResponse.Main"
+             computeMode="destinationAndMessage">
+        <translation xmi:type="utility:ConstantString" string="BuildResponse"/>
+      </nodes>
+      <!-- Subflow exit point -->
+      <nodes xmi:type="eflow:FCMSink" xmi:id="OutTerminal.Output_1" location="750,25">
+        <translation xmi:type="utility:TranslatableString" key="Output" bundleName="putMessage" pluginId="MQClientAPI"/>
+      </nodes>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1"
+                   sourceNode="InTerminal.Input_1" targetNode="FCMComposite_1_1"
+                   sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_2"
+                   sourceNode="FCMComposite_1_1" targetNode="FCMComposite_1_2"
+                   sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_3"
+                   sourceNode="FCMComposite_1_2" targetNode="FCMComposite_1_3"
+                   sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_4"
+                   sourceNode="FCMComposite_1_3" targetNode="OutTerminal.Output_1"
+                   sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+    </composition>
+    <propertyOrganizer/>
+    <stickyBoard/>
+  </eClassifiers>
+</ecore:EPackage>

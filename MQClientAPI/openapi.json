@@ -1,0 +1,118 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "MQClientAPI",
+    "description": "Simple REST API to put and get text messages on an IBM MQ queue.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "/mqclientapi/v1"
+    }
+  ],
+  "paths": {
+    "/messages": {
+      "post": {
+        "operationId": "putMessage",
+        "summary": "Put a message onto the queue",
+        "description": "Puts a plain-text message body onto the configured IBM MQ queue.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "text/plain": {
+              "schema": {
+                "type": "string",
+                "example": "Hello from ACE"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Message put successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PutResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      },
+      "get": {
+        "operationId": "getMessage",
+        "summary": "Get a message from the queue",
+        "description": "Gets the next available plain-text message from the configured IBM MQ queue. Returns 204 when the queue is empty.",
+        "responses": {
+          "200": {
+            "description": "Message retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetResponse"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "Queue is empty — no message available."
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "PutResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "Message put successfully"
+          }
+        }
+      },
+      "GetResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Hello from ACE"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "MQ_ERROR"
+          },
+          "message": {
+            "type": "string",
+            "example": "Failed to connect to queue manager."
+          }
+        }
+      }
+    },
+    "responses": {
+      "InternalError": {
+        "description": "An unexpected error occurred.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      }
+    }
+  }
+}
